@@ -1,6 +1,6 @@
 from datetime import datetime
 from uuid import uuid4
-from fastapi import APIRouter, Body, HTTPException, status
+from fastapi import APIRouter, Body, HTTPException, status, Query
 from pydantic import UUID4
 
 from workout_api.atleta.schemas import AtletaIn, AtletaOut, AtletaUpdate
@@ -62,7 +62,6 @@ async def post(
 
     return atleta_out
 
-
 @router.get(
     '/', 
     summary='Consultar todos os Atletas',
@@ -73,7 +72,6 @@ async def query(db_session: DatabaseDependency) -> list[AtletaOut]:
     atletas: list[AtletaOut] = (await db_session.execute(select(AtletaModel))).scalars().all()
     
     return [AtletaOut.model_validate(atleta) for atleta in atletas]
-
 
 @router.get(
     '/{id}', 
@@ -94,6 +92,27 @@ async def get(id: UUID4, db_session: DatabaseDependency) -> AtletaOut:
     
     return atleta
 
+@router.get(
+    '/', 
+    summary='Consultar todos os Atletas',
+    status_code=status.HTTP_200_OK,
+    response_model=list[AtletaOut],
+)
+async def query(             #adicionar query parameters nos endpoints (atleta - nome - cpf)
+    db_session: DatabaseDependency, 
+    nome: str = Query(None, description="Nome do atleta"), 
+    cpf: str = Query(None, description="CPF do atleta")
+) -> list[AtletaOut]:
+    query = select(AtletaModel)
+    
+    if nome:
+        query = query.filter(AtletaModel.nome == nome)
+    if cpf:
+        query = query.filter(AtletaModel.cpf == cpf)
+        
+    atletas: list[AtletaOut] = (await db_session.execute(query)).scalars().all()
+    
+    return [AtletaOut.model_validate(atleta) for atleta in atletas]
 
 @router.patch(
     '/{id}', 
